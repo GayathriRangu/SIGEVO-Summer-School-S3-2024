@@ -17,155 +17,115 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import TextIO, Optional, Any
 from collections.abc import Iterable, Hashable
+from itertools import combinations
+
 
 import logging
 
 Objective = Any
 
+@dataclass
 class Component:
-    @property
-    def cid(self) -> Hashable:
-        raise NotImplementedError
-
-class LocalMove:
-    ...
+    node: int
+    community_index: Optional[int]
 
 class Solution:
+    def __init__(self, problem: Problem):
+        self.problem = problem
+        self.communities = []
+        self.unused = set(range(problem.nnodes))
+        self.dist = 0.0
+
     def output(self) -> str:
-        """
-        Generate the output string for this solution
-        """
-        raise NotImplementedError
+        """Output the communities in a readable format, adjusting for one-based indexing."""
+        return "\n".join(" ".join(map(lambda x: str(x+1), sorted(community))) for community in self.communities)
 
-    def copy(self) -> Solution:
-        """
-        Return a copy of this solution.
-
-        Note: changes to the copy must not affect the original
-        solution. However, this does not need to be a deepcopy.
-        """
-        raise NotImplementedError
+    def copy(self):
+        return self.__class__(self.problem, deepcopy(self.communities), deepcopy(self.unused), self.dist)
 
     def is_feasible(self) -> bool:
-        """
-        Return whether the solution is feasible or not
-        """
-        raise NotImplementedError
+        # There should be no overlapping between the two sets.
+        """Check if all nodes are included and there are no overlapping communities."""
+        all_nodes = set().union(*self.communities)
+        return len(all_nodes) == self.problem.nnodes and not self.unused
 
-    def objective(self) -> Optional[Objective]:
-        """
-        Return the objective value for this solution if defined, otherwise
-        should return None
-        """
-        raise NotImplementedError
-
-    def lower_bound(self) -> Optional[Objective]:
-        """
-        Return the lower bound value for this solution if defined,
-        otherwise return None
-        """
-        raise NotImplementedError
+    def objective(self) -> Optional[float]:
+        # API should be minimize
+        # objective fucniton should be updated.
+        """Calculate the objective if the solution is feasible."""
+        if self.is_feasible():
+            return self.dist / 2  # Adjust for double-counting
+        return None
 
     def add_moves(self) -> Iterable[Component]:
-        """
-        Return an iterable (generator, iterator, or iterable object)
-        over all components that can be added to the solution
-        """
-        raise NotImplementedError
-
-    def local_moves(self) -> Iterable[LocalMove]:
-        """
-        Return an iterable (generator, iterator, or iterable object)
-        over all local moves that can be applied to the solution
-        """
-        raise NotImplementedError
-
-    def random_local_move(self) -> Optional[LocalMove]:
-        """
-        Return a random local move that can be applied to the solution.
-
-        Note: repeated calls to this method may return the same
-        local move.
-        """
-        raise NotImplementedError
-
-    def random_local_moves_wor(self) -> Iterable[LocalMove]:
-        """
-        Return an iterable (generator, iterator, or iterable object)
-        over all local moves (in random order) that can be applied to
-        the solution.
-        """
-        raise NotImplementedError
-            
-    def heuristic_add_move(self) -> Optional[Component]:
-        """
-        Return the next component to be added based on some heuristic
-        rule.
-        """
-        raise NotImplementedError
+        """Generate all possible moves for each unused node to any existing or new community."""
+        if self.unused:
+            node_to_add = next(iter(self.unused))  # Take one unused node
+            for index in range(len(self.communities)):
+                yield Component(node_to_add, index)
+            yield Component(node_to_add, None)  # Consider starting a new community
 
     def add(self, component: Component) -> None:
-        """
-        Add a component to the solution.
+        """Add a node to a specified community based on the component details."""
+        self.add_node_to_community(component.node, component.community_index)
 
-        Note: this invalidates any previously generated components and
-        local moves.
-        """
-        raise NotImplementedError
+    def lower_bound_incr_add(self, component: Component) -> Optional[float]:
+        """Calculate the potential increase if a node is added to a specified community."""
+        if component.community_index is not None and component.community_index < len(self.communities):
+            total_positive = sum(self.problem.weights[component.node][member] for member in self.communities[component.community_index] if self.problem.weights[component.node][member] > 0)
+            total_negative = sum(self.problem.weights[component.node][member] for member in self.communities[component.community_index] if self.problem.weights[component.node][member] < 0)
+            return total_positive + total_negative  # Account for both positive and negative weights
+        return 0  # If new community, no increase from other nodes
 
-    def step(self, lmove: LocalMove) -> None:
-        """
-        Apply a local move to the solution.
-
-        Note: this invalidates any previously generated components and
-        local moves.
-        """
-        raise NotImplementedError
-
-    def objective_incr_local(self, lmove: LocalMove) -> Optional[Objective]:
-        """
-        Return the objective value increment resulting from applying a
-        local move. If the objective value is not defined after
-        applying the local move return None.
-        """
-        raise NotImplementedError
-
-    def lower_bound_incr_add(self, component: Component) -> Optional[Objective]:
-        """
-        Return the lower bound increment resulting from adding a
-        component. If the lower bound is not defined after adding the
-        component return None.
-        """
-        raise NotImplementedError
-
-    def perturb(self, ks: int) -> None:
-        """
-        Perturb the solution in place. The amount of perturbation is
-        controlled by the parameter ks (kick strength)
-        """
-        raise NotImplementedError
-
-    def components(self) -> Iterable[Component]:
-        """
-        Returns an iterable to the components of a solution
-        """
-        raise NotImplementedError
+    def add_node_to_community(self, node: int, community_index: Optional[int] = None):
+        """Add a node to an existing community or create a new one, updating the dist accordingly."""
+        if community_index is None or community_index >= len(self.communities):
+            self.communities.append({node})
+            community_index = len(self.communities) - 1
+        else:
+            positive_weights = sum(self.problem.weights[node][member] for member in self.communities[community_index] if self.problem.weights[node][member] > 0)
+            negative_weights = sum(self.problem.weights[node][member] for member in self.communities[community_index] if self.problem.weights[node][member] < 0)
+            if positive_weights + negative_weights > 0:
+                self.dist += positive_weights + negative_weights
+        self.communities[community_index].add(node)
+        self.unused.discard(node)
 
 class Problem:
+    def __init__(self, nnodes: int, weights: List[List[float]]) -> None:
+        """
+        Initialize the Problem with number of nodes and the weight matrix.
+        """
+        self.nnodes = nnodes
+        self.weights = weights
+
     @classmethod
-    def from_textio(cls, f: TextIO) -> Problem:
+    def from_textio(cls, f: TextIO) -> 'Problem':
         """
         Create a problem from a text I/O source `f`
         """
-        raise NotImplementedError
+        n = int(f.readline().strip())  # Read the number of nodes
+        weights = [[0.0] * n for _ in range(n)]  # Initialize a square matrix filled with zeros
 
-    def empty_solution(self) -> Solution:
+        for i in range(n):
+            line_weights = list(map(float, f.readline().strip().split()))
+            # Properly fill weights matrix ensuring symmetry
+            for j, weight in enumerate(line_weights):
+                if i + j + 1 <= n:  # Check the bounds considering the zero-based index
+                    weights[i][i + j] = weight
+                    weights[i + j][i] = weight  # Fill symmetrically to denote undirected edges
+
+        print(weights)
+        return cls(n, weights)
+
+    def empty_solution(self) -> 'Solution':
         """
-        Create an empty solution (i.e. with no components).
+        Create an initial solution where there are no communities.
         """
-        raise NotImplementedError
+        return Solution(self)
+
 
 
 if __name__ == '__main__':
