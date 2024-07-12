@@ -77,12 +77,12 @@ class Solution:
         """Add a node to a specified community based on the component details."""
         self.add_node_to_community(component.node, component.community_index)
 
-    def lower_bound_incr_add(self, component: Component) -> Optional[float]: #UPDATE THE LOGIC
-        if component.community_index is not None and component.community_index < len(self.communities): #logic needs to be updated ?? did not understand- discuss
-            total_positive = sum(self.problem.weights[component.node][member] for member in self.communities[component.community_index] if self.problem.weights[component.node][member] > 0)
-            total_negative = sum(abs(self.problem.weights[component.node][member]) for member in self.communities[component.community_index] if self.problem.weights[component.node][member] < 0)
-            return -(total_positive - total_negative) 
-        return 0
+    # def lower_bound_incr_add(self, component: Component) -> Optional[float]: #UPDATE THE LOGIC
+    #     if component.community_index is not None and component.community_index < len(self.communities): #logic needs to be updated ?? did not understand- discuss
+    #         total_positive = sum(self.problem.weights[component.node][member] for member in self.communities[component.community_index] if self.problem.weights[component.node][member] > 0)
+    #         total_negative = sum(abs(self.problem.weights[component.node][member]) for member in self.communities[component.community_index] if self.problem.weights[component.node][member] < 0)
+    #         return -(total_positive - total_negative) 
+    #     return 0
 
     def add_node_to_community(self, node: int, community_index: Optional[int] = None):
         if community_index is None or community_index >= len(self.communities):
@@ -99,6 +99,12 @@ class Solution:
             else:
                 self.communities.append({node}) #append it as a set?? or a list???
                 self.unused.discard(node)
+    def lower_bound_incr_add(self, component: Component) -> Optional[float]:
+        if component.community_index is not None and component.community_index < len(self.communities):
+            # Only summing the positive weights to assess the potential positive impact
+            total_positive = sum(self.problem.weights[component.node][member] for member in self.communities[component.community_index] if self.problem.weights[component.node][member] > 0)
+            return -total_positive  # Still returning a negative value for compatibility with a minimization strategy
+        return 0  # No potential increase for a new community
 
 class Problem:
     def __init__(self, nnodes: int, weights: List[List[float]]) -> None: 
