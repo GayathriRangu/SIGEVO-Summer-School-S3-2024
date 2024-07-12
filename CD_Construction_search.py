@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass
-from typing import TextIO, Optional, Any
+from typing import TextIO, Optional, List, Any
 from collections.abc import Iterable, Hashable
 from itertools import combinations
 
@@ -47,11 +47,13 @@ class Solution:
     def copy(self):
         # i think that we are not supposed to deepcopy it?
         return self.__class__(self.problem, deepcopy(self.communities), deepcopy(self.unused), self.dist)
-
+#DONE
     def is_feasible(self) -> bool:
         # There should be no overlapping between the two sets.
         """Check if all nodes are included and there are no overlapping communities."""
         all_nodes = set().union(*self.communities)
+        #ADD MORE CONDITIONS -- ADDED ALREADY IN THE RETURN STATEMENT -- CHECK THE CONDITIONS
+        #IF UNUSED IS EMPTY DOES THAT MEAN THE INTERSECTION IS EMPTY? YES, BECAUSE IF LEN VALUEIS EQUAL TO THE NUM NODES AND UNUSED IS EMPTY THAT MEANS THE INTERSENTION IS EMPTY AS WELL
         return len(all_nodes) == self.problem.nnodes and not self.unused
 
     def objective(self) -> Optional[float]:
@@ -60,7 +62,7 @@ class Solution:
         """Calculate the objective if the solution is feasible."""
         if self.is_feasible():
             return self.dist
-        return None
+        return None #returns the erroe message
 
     def add_moves(self) -> Iterable[Component]:
         """Generate all possible moves for each unused node to any existing or new community."""
@@ -74,18 +76,18 @@ class Solution:
         """Add a node to a specified community based on the component details."""
         self.add_node_to_community(component.node, component.community_index)
 
-    def lower_bound_incr_add(self, component: Component) -> Optional[float]:
-        if component.community_index is not None and component.community_index < len(self.communities):
+    def lower_bound_incr_add(self, component: Component) -> Optional[float]: #UPDATE THE LOGIC
+        if component.community_index is not None and component.community_index < len(self.communities): #logic needs to be updated ?? did not understand- discuss
             total_positive = sum(self.problem.weights[component.node][member] for member in self.communities[component.community_index] if self.problem.weights[component.node][member] > 0)
             total_negative = sum(abs(self.problem.weights[component.node][member]) for member in self.communities[component.community_index] if self.problem.weights[component.node][member] < 0)
-            return - (total_positive - total_negative)
+            return -(total_positive - total_negative) 
         return 0
 
     def add_node_to_community(self, node: int, community_index: Optional[int] = None):
         if community_index is None or community_index >= len(self.communities):
-            self.communities.append({node})
-            self.unused.discard(node)
-        else:
+            self.communities.append({node}) #appending a set???
+            self.unused.discard(node) #remve that node from the unused set since now we have used it
+        else: #add the node to the community existing -- add weights
             positive_weights = sum(self.problem.weights[node][member] for member in self.communities[community_index] if self.problem.weights[node][member] > 0)
             negative_weights = sum(abs(self.problem.weights[node][member]) for member in self.communities[community_index] if self.problem.weights[node][member] < 0)
             
@@ -94,24 +96,24 @@ class Solution:
                 self.unused.discard(node)
                 self.dist += positive_weights - negative_weights
             else:
-                self.communities.append({node})
+                self.communities.append({node}) #append it as a set?? or a list???
                 self.unused.discard(node)
 
 class Problem:
-    def __init__(self, nnodes: int, weights: List[List[float]]) -> None:
+    def __init__(self, nnodes: int, weights: List[List[float]]) -> None: 
         """
         Initialize the Problem with number of nodes and the weight matrix.
         """
-        self.nnodes = nnodes
-        self.weights = weights
+        self.nnodes = nnodes #number of nodes
+        self.weights = weights #weight matrix 2D list
 
     @classmethod
     def from_textio(cls, f: TextIO) -> 'Problem':
         """
         Create a problem from a text I/O source `f`
         """
-        n = int(f.readline().strip())  # Read the number of nodes
-        weights = [[0.0] * n for _ in range(n)]  # Initialize a square matrix filled with zeros
+        n = int(f.readline().strip())  # Read the number of nodes - provided in the first line of the code
+        weights = [[0.0] * n for _ in range(n)]  # Initialize a square matrix filled with zeros and then read the values from the text file 
 
         for i in range(n):
             line_weights = list(map(float, f.readline().strip().split()))
@@ -129,6 +131,8 @@ class Problem:
         Create an initial solution where there are no communities.
         """
         return Solution(self)
+        #return Solution(self, 0, Path([0]), Used({0}), Unused(set(range(1, self.nnodes))), 0)
+        #could also code the empty solution with start part as in tsp.py??
 
 
 
