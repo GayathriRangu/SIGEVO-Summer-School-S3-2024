@@ -19,15 +19,30 @@ from __future__ import annotations
 
 from typing import TextIO, Optional, Any
 from collections.abc import Iterable, Hashable
+from typing import Hashable, Set
 
 import logging
 
 Objective = Any
 
+
 class Component:
+    def __init__(self, u: int, v: Set):
+        self.u = u
+        self.v = v
+
     @property
     def cid(self) -> Hashable:
-        raise NotImplementedError
+        return self.u, frozenset(self.v)
+
+# class Component: #a set of sets is the solution
+#     u:int
+#     v:set
+
+#     @property
+#     def cid(self) -> Hashable:
+#         return self.u, self.v
+#         #raise NotImplementedError
 
 class LocalMove:
     ...
