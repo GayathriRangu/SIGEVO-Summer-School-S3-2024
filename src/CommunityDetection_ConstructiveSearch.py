@@ -17,7 +17,7 @@
 
 from __future__ import annotations
 
-from copy import deepcopy
+from copy import copy
 import random
 from dataclasses import dataclass
 from typing import TextIO, Optional, List, Any
@@ -31,23 +31,28 @@ Objective = Any
 
 @dataclass
 class Component:
-    node: int
+    node: int #variable annotations
     community_index: Optional[int]
 
 class Solution:
-    def __init__(self, problem: Problem):
+    def __init__(self, problem: Problem): #function parameter type hints
         self.problem = problem
         self.communities = []
         self.unused = set(range(problem.nnodes))
         self.dist = 0.0
 
-    def output(self) -> str:
+    def output(self) -> str: #return type hint
         """Output the communities in a readable format, adjusting for one-based indexing."""
         return "\n".join(" ".join(map(lambda x: str(x+1), sorted(community))) for community in self.communities)
 
     def copy(self):
         # i think that we are not supposed to deepcopy it?
-        return self.__class__(self.problem, deepcopy(self.communities), deepcopy(self.unused), self.dist)
+        new_inst=self.__class__(self.problem)
+        new_inst.communities=copy(self.communities)
+        new_inst.unused=copy(self.unused)
+        new_inst.dist=self.dist
+        return new_inst
+        #return self.__class__(self.problem, copy(self.communities), copy(self.unused), self.dist)
 #DONE
     def is_feasible(self) -> bool:
         # There should be no overlapping between the two sets.
@@ -65,7 +70,7 @@ class Solution:
             return self.dist
         return None #returns the erroe message
 
-    def add_moves(self) -> Iterable[Component]:
+    def add_moves(self) -> Iterable[Component]: #returns an iterable where each component is an instance of the component class
         """Generate all possible moves for each unused node to any existing or new community."""
         if self.unused:
             node_to_add = next(iter(self.unused))  # Take one unused node
@@ -89,8 +94,12 @@ class Solution:
             self.communities.append({node}) #appending a set???
             self.unused.discard(node) #remve that node from the unused set since now we have used it
         else: #add the node to the community existing -- add weights
-            positive_weights = sum(self.problem.weights[node][member] for member in self.communities[community_index] if self.problem.weights[node][member] > 0)
-            negative_weights = sum(abs(self.problem.weights[node][member]) for member in self.communities[community_index] if self.problem.weights[node][member] < 0)
+            positive_weights = sum(self.problem.weights[node][member] 
+                                   for member in self.communities[community_index] 
+                                   if self.problem.weights[node][member] > 0)
+            negative_weights = sum(abs(self.problem.weights[node][member]) 
+                                   for member in self.communities[community_index] 
+                                   if self.problem.weights[node][member] < 0)
             
             if positive_weights > negative_weights:
                 self.communities[community_index].add(node)
@@ -102,7 +111,9 @@ class Solution:
     def lower_bound_incr_add(self, component: Component) -> Optional[float]:
         if component.community_index is not None and component.community_index < len(self.communities):
             # Only summing the positive weights to assess the potential positive impact
-            total_positive = sum(self.problem.weights[component.node][member] for member in self.communities[component.community_index] if self.problem.weights[component.node][member] > 0)
+            total_positive = sum(self.problem.weights[component.node][member] 
+                                 for member in self.communities[component.community_index] 
+                                 if self.problem.weights[component.node][member] > 0)
             return -total_positive  # Still returning a negative value for compatibility with a minimization strategy
         return 0  # No potential increase for a new community
 
