@@ -97,53 +97,6 @@ class Solution:
                 self.communities.append({node})
                 self.unused.discard(node)
 
-
-    # def local_moves(self) -> Iterable[LocalMove]:
-    #     """
-    #     Return an iterable (generator, iterator, or iterable object)
-    #     over all local moves that can be applied to the solution
-    #     """
-    #     raise NotImplementedError
-
-    # def random_local_move(self) -> Optional[LocalMove]:
-    #     # randomly select any node
-    #     random_node = random.choice(range(self.problem.nnodes))
-
-    #     raise random_node
-
-    # def random_local_moves_wor(self) -> Iterable[LocalMove]:
-    #     """
-    #     Return an iterable (generator, iterator, or iterable object)
-    #     over all local moves (in random order) that can be applied to
-    #     the solution.
-    #     """
-    #     raise NotImplementedError
-
-    # def heuristic_add_move(self) -> Optional[Component]:
-    #     """
-    #     Return the next component to be added based on some heuristic
-    #     rule.
-    #     """
-    #     raise NotImplementedError
-
-    # def add(self, component: Component) -> None:
-    #     """
-    #     Add a component to the solution.
-
-    #     Note: this invalidates any previously generated components and
-    #     local moves.
-    #     """
-    #     raise NotImplementedError
-
-    # def step(self, lmove: LocalMove) -> None:
-    #     """
-    #     Apply a local move to the solution.
-
-    #     Note: this invalidates any previously generated components and
-    #     local moves.
-    #     """
-    #     raise NotImplementedError
-
 class Problem:
     def __init__(self, nnodes: int, weights: List[List[float]]) -> None:
         """
