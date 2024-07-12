@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 import random
 from dataclasses import dataclass
 from typing import TextIO, Optional, List, Any
