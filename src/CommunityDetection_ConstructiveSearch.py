@@ -33,6 +33,9 @@ Objective = Any
 class Component:
     node: int #variable annotations
     community_index: Optional[int]
+class LocalMove:
+    i: int # node
+    j: int # community index
 
 class Solution:
     def __init__(self, problem: Problem): #function parameter type hints
@@ -60,7 +63,8 @@ class Solution:
         all_nodes = set().union(*self.communities)
         #ADD MORE CONDITIONS -- ADDED ALREADY IN THE RETURN STATEMENT -- CHECK THE CONDITIONS
         #IF UNUSED IS EMPTY DOES THAT MEAN THE INTERSECTION IS EMPTY? YES, BECAUSE IF LEN VALUEIS EQUAL TO THE NUM NODES AND UNUSED IS EMPTY THAT MEANS THE INTERSENTION IS EMPTY AS WELL
-        return len(all_nodes) == self.problem.nnodes and not self.unused
+        return len(all_nodes) == self.problem.nnodes and not self.unused #COMMENTS FROM CARLOS -- adding extra checks -- adds on to more computation
+    #Remove the additional condition checks!
 
     def objective(self) -> Optional[float]:
         # API should be minimize
@@ -89,6 +93,9 @@ class Solution:
     #         return -(total_positive - total_negative) 
     #     return 0
 
+#COMMENTS FROM CARLOS AFTER THE PRESENTATION
+#the condition of checking the positvie weights > negative is not necessary. It contradictes with the function purpose. If we are taking a decision here, 
+#then we are essentially doing the same thing that the algorithm would also do -- remove it and let the algo decide!!
     def add_node_to_community(self, node: int, community_index: Optional[int] = None):
         if community_index is None or community_index >= len(self.communities):
             self.communities.append({node}) #appending a set???
@@ -108,6 +115,12 @@ class Solution:
             else:
                 self.communities.append({node}) #append it as a set?? or a list???
                 self.unused.discard(node)
+
+    #COMMENTS FROM CARLOS AFTER THE PRESENTATION
+    #Lower bound calculation -- it is already calculated at the addnodes function -- 
+    #1. add the negative weights associated with the comunity that is being added
+    #2. also subtract the weights that are connected witht he other communities -- both of these will make the lower bound more stricter!!
+    #CHANGE THE IMPLEMENTATION
     def lower_bound_incr_add(self, component: Component) -> Optional[float]:
         if component.community_index is not None and component.community_index < len(self.communities):
             # Only summing the positive weights to assess the potential positive impact
@@ -117,8 +130,8 @@ class Solution:
             return -total_positive  # Still returning a negative value for compatibility with a minimization strategy
         return 0  # No potential increase for a new community
 
-class Problem:
-    def __init__(self, nnodes: int, weights: List[List[float]]) -> None: 
+class Problem: #COMMENTS BY CARLOS
+    def __init__(self, nnodes: int, weights: List[List[float]]) -> None:  #rather than using float, we could just use int since it is already specified in the problem statement
         """
         Initialize the Problem with number of nodes and the weight matrix.
         """
@@ -151,6 +164,39 @@ class Problem:
         return Solution(self)
         #return Solution(self, 0, Path([0]), Used({0}), Unused(set(range(1, self.nnodes))), 0)
         #could also code the empty solution with start part as in tsp.py??
+
+
+#CODE FOR LOCAL SEARCH BEGINS##############################################
+    def local_moves(self, component: Component) -> Iterable[LocalMove]:
+        for node in range(len(self.problem.nnodes)):
+            node_index = self.communities[component.community_index]
+            LocalMove(node, node_index)
+
+
+    def random_local_move(self, component: Component) -> Optional[LocalMove]:
+        random_node = random.choice(range(self.problem.nnodes))
+        random_node_index = self.communities[component.community_index]
+        LocalMove(random_node, random_node_index)
+
+
+    def step(self, lmove: 'LocalMove', component: 'Component') -> None:
+          node, node_index = lmove.i, lmove.j
+          random_index = random.choice(range(len(self.communities)))
+          self.communities[component.community_index] = random_index
+          # put the node to this community
+          self.communities[node_index].remove(node)
+          # if len(communities[node_index]) == 1:
+          #   communities.remove(communities[node_index])
+          #   for a > node_index:
+          fit_value = 0
+          for element in self.communities:
+              for subelement in element:
+                  fit_value += sum(self.problem.weights[subelement][i] for i in range(len(element)))
+    
+          print(fit_value)
+          # remove from the earlier one, if it has length one than remove set and rearrange the indices of other sets
+          # reevaluate the objective function
+#CODE FOR LOCAL SEARCH ENDS##############################################
 
 
 

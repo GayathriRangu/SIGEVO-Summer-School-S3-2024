@@ -153,20 +153,21 @@ class Problem:
 
 
     def step(self, lmove: 'LocalMove', component: 'Component') -> None:
-          node, node_index = lmove.i, lmove.j
-          random_index = random.choice(range(len(self.communities)))
-          self.communities[component.community_index] = random_index
+        node, node_index = lmove.i, lmove.j
+        random_index = random.choice(range(len(self.communities)))
+        self.communities[component.community_index] = random_index
           # put the node to this community
-          self.communities[node_index].remove(node)
+        self.communities[node_index].remove(node)
           # if len(communities[node_index]) == 1:
           #   communities.remove(communities[node_index])
           #   for a > node_index:
-          fit_value = 0
-          for element in self.communities:
-              for subelement in element:
-                  fit_value += sum(self.problem.weights[subelement][i] for i in range(len(element)))
+        fit_value = 0
+        for element in self.communities:
+          for subelement in element:
+               fit_value += sum(self.problem.weights[subelement][i] for i in range(len(element)))
+        fit_value=fit_value/2
     
-          print(fit_value)
+        print(fit_value)
           # remove from the earlier one, if it has length one than remove set and rearrange the indices of other sets
           # reevaluate the objective function
 #CODE FOR LOCAL SEARCH ENDS##############################################
